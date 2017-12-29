@@ -10,8 +10,20 @@ import rand_id from './lib/rand_id';
 
 const debug = Debug('localtunnel:server');
 
-function GetClientIdFromHostname(hostname) {
-    return tldjs.getSubdomain(hostname);
+function GetClientIdFromHostname(hostname, _subHost) {
+    let subdomain = tldjs.getSubdomain(hostname);
+    if (subdomain && _subHost) {
+	const subHosts = Array.isArray(_subHost)
+	      ? _subHost : [_subHost]
+	const subHost = subHosts.reduce((found, sub) => {
+	    return found
+		|| (subdomain.slice(-sub.length) == sub ? sub : '')
+	}, '')
+	subdomain = subHost
+	    ? subdomain.slice(0, -(subHost.length + 1))
+	    : subdomain
+    }
+    return subdomain;
 }
 
 module.exports = function(opt) {
@@ -111,7 +123,7 @@ module.exports = function(opt) {
             return;
         }
 
-        const clientId = GetClientIdFromHostname(hostname);
+        const clientId = GetClientIdFromHostname(hostname, opt.subHost);
         if (!clientId) {
             appCallback(req, res);
             return;
@@ -133,7 +145,7 @@ module.exports = function(opt) {
             return;
         }
 
-        const clientId = GetClientIdFromHostname(hostname);
+        const clientId = GetClientIdFromHostname(hostname, opt.subHost);
         if (!clientId) {
             sock.destroy();
             return;
